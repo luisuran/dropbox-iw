@@ -12,6 +12,7 @@
 #include <signal.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <crypt.h>
 
 #define BUFFERLEN 1024
 
@@ -272,11 +273,24 @@ void send_file(char *filename, int sockfd, char *username)
     fclose(fp);
 }
 
+char *hash_password(char *password)
+{
+    char *hash = malloc(BUFFERLEN);
+    char *salt = "2cf24d%%a5fb0a30e2!e83b2a&5b9$29e1b161e5#fa7425e/30433629(8b08(4";
+
+    strcpy(hash, crypt(password, salt));
+
+    return hash;
+}
+
 char *login(char *name, char *password)
 {
     char base_dir[BUFFERLEN];
+    char h_password[BUFFERLEN];
 
     strcpy(base_dir, name); //Guardo una copia del nombre para utilizarlo como directorio base
+
+    strcpy(h_password, hash_password(password));
 
     // Creo una carpeta con el nombre del usuario (si es que no existe ya)
     if (mkdir(base_dir, 0777) == 0)
@@ -285,7 +299,7 @@ char *login(char *name, char *password)
         FILE *fp;
         strcat(base_dir, "/data.txt");
         fp = fopen(base_dir, "w");
-        fputs(password, fp);
+        fputs(h_password, fp);
         fclose(fp);
     }
     else
@@ -298,7 +312,7 @@ char *login(char *name, char *password)
         fgets(buffer, 50, fp);
         fclose(fp);
 
-        if (strcmp(buffer, password) != 0) // Comparo la contraseña ingresada con la guardada
+        if (strcmp(buffer, h_password) != 0) // Comparo la contraseña ingresada con la guardada
 
             return "NO";
     }
